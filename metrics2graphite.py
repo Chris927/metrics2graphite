@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import time
 import thread
+import subprocess
+import socket
 from steps import steps
 
 # TODO: idea is to load multiple files here (e.g. all in a configured dir)
@@ -16,9 +18,14 @@ class timed:
     while True:
       # TODO: push metrics to graphite here...
       for name, function in steps.iteritems():
-        print "now should push metric: {}".format(name)
-      print "metrics pushed to graphite, #steps is {}".format(len(steps))
-      time.sleep(1)
+        id_and_value = function()
+        msg = "{} {}".format(id_and_value, subprocess.check_output([ "date", r"+%s" ]))
+        print "now should push metric: {}, msg={}".format(name, msg)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # TODO: could have one socket open while sending all metrics?
+        s.connect(('localhost', 10003))
+        s.sendall(msg)
+        s.close()
+      time.sleep(10)
 
 if __name__ == "__main__":
   print "starting thread"
